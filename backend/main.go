@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/jessevdk/go-flags"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -45,7 +46,28 @@ type Alert struct {
 	SendOnResolve bool   `yaml:"send-on-resolve"`
 }
 
+type Options struct {
+	Listen         string        `short:"l" long:"listen" env:"LISTEN_SERVER" default:":8080" description:"listen address"`
+	Secret         string        `short:"s" long:"secret" env:"SECRET_KEY" default:"123"`
+	PinSize        int           `long:"pinszie" env:"PIN_SIZE" default:"5" description:"pin size"`
+	MaxExpire      time.Duration `long:"expire" env:"MAX_EXPIRE" default:"24h" description:"max lifetime"`
+	MaxPinAttempts int           `long:"pinattempts" env:"PIN_ATTEMPTS" default:"3" description:"max attempts to enter pin"`
+	WebRoot        string        `long:"web" env:"WEB" default:"/" description:"web ui location"`
+}
+
+var revision string
+
 func main() {
+	log.Printf("Pinger %s\n", revision)
+
+	var opts Options
+	parser := flags.NewParser(&opts, flags.Default)
+	_, err := parser.Parse()
+	if err != nil {
+
+		log.Fatal(err)
+	}
+
 	// Зчитування конфігураційного файлу
 	config, err := readConfig("config.yml")
 	if err != nil {
