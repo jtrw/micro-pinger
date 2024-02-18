@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	server "micro-pinger/server"
 	"net/http"
 	"os"
 	"os/signal"
@@ -68,7 +69,6 @@ func main() {
 	parser := flags.NewParser(&opts, flags.Default)
 	_, err := parser.Parse()
 	if err != nil {
-
 		log.Fatal(err)
 	}
 
@@ -93,13 +93,18 @@ func main() {
 		cancel()
 	}()
 
-	// Запуск сервісу для кожного сервісу з конфігурації
-	for _, service := range config.Services {
-		go monitorService(service)
+	srv := server.Server{
+		Listen:         opts.Listen,
+		PinSize:        opts.PinSize,
+		MaxExpire:      opts.MaxExpire,
+		MaxPinAttempts: opts.MaxPinAttempts,
+		WebRoot:        opts.WebRoot,
+		Secret:         opts.Secret,
+		Version:        revision,
 	}
-
-	// Некінцевий цикл для утримання головного потоку активним
-	select {}
+	if err := srv.Run(ctx); err != nil {
+		log.Printf("[ERROR] failed, %+v", err)
+	}
 }
 
 func readConfig(filename string) (Config, error) {
