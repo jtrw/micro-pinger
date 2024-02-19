@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"log"
 	"micro-pinger/v2/app/handler"
+	config "micro-pinger/v2/app/service"
 	"net/http"
 	///	"os"//
 	//	"strings"
@@ -26,7 +27,7 @@ type Server struct {
 	WebRoot        string
 	Secret         string
 	Version        string
-	Services       map[string]interface{}
+	Config         config.Config
 }
 
 func (s Server) Run(ctx context.Context) error {

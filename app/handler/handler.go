@@ -6,41 +6,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	config "micro-pinger/v2/app/service"
 	"net/http"
 	"strings"
 	"time"
 )
-
-type Service struct {
-	Name     string   `yaml:"name"`
-	URL      string   `yaml:"url"`
-	Method   string   `yaml:"method"`
-	Type     string   `yaml:"type"`
-	Body     string   `yaml:"body"`
-	Interval string   `yaml:"interval"`
-	Headers  []Header `yaml:"headers"`
-	Response Response `yaml:"response"`
-	Alerts   []Alert  `yaml:"alerts"`
-}
-
-type Header struct {
-	Name  string `yaml:"name"`
-	Value string `yaml:"value"`
-}
-
-type Response struct {
-	Status int    `yaml:"status"`
-	Body   string `yaml:"body"`
-}
-
-type Alert struct {
-	Name          string `yaml:"name"`
-	Type          string `yaml:"type"`
-	To            string `yaml:"to"`
-	Failure       int    `yaml:"failure"`
-	Success       int    `yaml:"success"`
-	SendOnResolve bool   `yaml:"send-on-resolve"`
-}
 
 type JSON map[string]interface{}
 
@@ -57,7 +27,7 @@ func (h Handler) Check(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(JSON{"status": "ok"})
 }
 
-func monitorService(service Service) {
+func monitorService(service config.Service) {
 	interval, err := time.ParseDuration(service.Interval)
 	if err != nil {
 		log.Printf("[%s] Error parsing interval: %s", service.Name, err)
@@ -75,7 +45,7 @@ func monitorService(service Service) {
 	}
 }
 
-func checkService(service Service) {
+func checkService(service config.Service) {
 	log.Printf("[%s] Checking service...", service.Name)
 
 	// Виконати HTTP-запит до сервісу
@@ -125,7 +95,7 @@ func checkService(service Service) {
 	sendAlerts(service, true)
 }
 
-func sendAlerts(service Service, success bool) {
+func sendAlerts(service config.Service, success bool) {
 	for _, alert := range service.Alerts {
 		if success {
 			if alert.Success > 0 {
@@ -150,7 +120,7 @@ func sendAlerts(service Service, success bool) {
 	}
 }
 
-func sendAlert(alert Alert, message string) {
+func sendAlert(alert config.Alert, message string) {
 	switch alert.Type {
 	case "email":
 		// Реалізуйте відправку електронної пошти
