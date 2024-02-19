@@ -4,10 +4,9 @@ import (
 	"context"
 	//	"fmt"
 	"github.com/jessevdk/go-flags"
-	"gopkg.in/yaml.v2"
-	"io/ioutil"
 	"log"
 	server "micro-pinger/v2/app/server"
+	config "micro-pinger/v2/app/service"
 	//"net/http"
 	"os"
 	"os/signal"
@@ -16,11 +15,8 @@ import (
 	"time"
 )
 
-type Config struct {
-	Sercies map[string]interface{} `yaml:"services"`
-}
-
 type Options struct {
+	Config         string        `short:"c" long:"config" env:"CONFIG" default:"config.yml" description:"config file"`
 	Listen         string        `short:"l" long:"listen" env:"LISTEN_SERVER" default:":8080" description:"listen address"`
 	Secret         string        `short:"s" long:"secret" env:"SECRET_KEY" default:"123"`
 	PinSize        int           `long:"pinszie" env:"PIN_SIZE" default:"5" description:"pin size"`
@@ -41,8 +37,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Зчитування конфігураційного файлу
-	config, err := readConfig("config.yml")
+	cnf, err := config.LoadConfig(opts.Config)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -62,8 +57,6 @@ func main() {
 		cancel()
 	}()
 
-	services := config.Sercies
-
 	srv := server.Server{
 		Listen:         opts.Listen,
 		PinSize:        opts.PinSize,
@@ -72,24 +65,9 @@ func main() {
 		WebRoot:        opts.WebRoot,
 		Secret:         opts.Secret,
 		Version:        revision,
-		Services:       services,
+		Config:         cnf,
 	}
 	if err := srv.Run(ctx); err != nil {
 		log.Printf("[ERROR] failed, %+v", err)
 	}
-}
-
-func readConfig(filename string) (Config, error) {
-	data, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return Config{}, err
-	}
-
-	var config Config
-	err = yaml.Unmarshal(data, &config)
-	if err != nil {
-		return Config{}, err
-	}
-
-	return config, nil
 }
