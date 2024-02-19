@@ -9,40 +9,25 @@ import (
 	config "micro-pinger/v2/app/service"
 	"net/http"
 	"strings"
-	"time"
+	//"time"
 )
 
 type JSON map[string]interface{}
 
 type Handler struct {
+	Services []config.Service
 }
 
-func NewHandler() Handler {
-	return Handler{}
+func NewHandler(services []config.Service) Handler {
+	return Handler{Services: services}
 }
 
 func (h Handler) Check(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
+	for _, service := range h.Services {
+		go checkService(service)
+	}
 	json.NewEncoder(w).Encode(JSON{"status": "ok"})
-}
-
-func monitorService(service config.Service) {
-	interval, err := time.ParseDuration(service.Interval)
-	if err != nil {
-		log.Printf("[%s] Error parsing interval: %s", service.Name, err)
-		return
-	}
-
-	ticker := time.NewTicker(interval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			checkService(service)
-		}
-	}
 }
 
 func checkService(service config.Service) {

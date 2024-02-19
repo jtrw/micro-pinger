@@ -68,7 +68,7 @@ func (s Server) routes() chi.Router {
 	router.Use(tollbooth_chi.LimitHandler(tollbooth.NewLimiter(10, nil)))
 	router.Use(middleware.Logger)
 
-	handler := handler.NewHandler()
+	handler := handler.NewHandler(s.Config.Service)
 
 	router.Route(
 		"/api/v1", func(r chi.Router) {
