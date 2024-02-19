@@ -9,12 +9,11 @@ import (
 	"github.com/go-chi/render"
 	"github.com/jtrw/go-rest"
 	"github.com/pkg/errors"
-	"io/fs"
 	"log"
-	"micro-pinger/handler"
+	"micro-pinger/v2/app/handler"
 	"net/http"
-	"os"
-	"strings"
+	///	"os"//
+	//	"strings"
 	"time"
 	//"fmt"
 )
@@ -27,6 +26,7 @@ type Server struct {
 	WebRoot        string
 	Secret         string
 	Version        string
+	Services       map[string]interface{}
 }
 
 func (s Server) Run(ctx context.Context) error {
@@ -71,7 +71,6 @@ func (s Server) routes() chi.Router {
 
 	router.Route(
 		"/api/v1", func(r chi.Router) {
-			r.Use(Cors)
 			r.Get("/check", handler.Check)
 		},
 	)

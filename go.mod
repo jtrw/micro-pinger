@@ -1,4 +1,4 @@
-module micro-pinger
+module micro-pinger/v2
 
 go 1.21.5
 
