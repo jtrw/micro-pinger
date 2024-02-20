@@ -9,13 +9,22 @@ import (
 	config "micro-pinger/v2/app/service"
 	"net/http"
 	"strings"
+	"sync"
 	//"time"
 )
 
 type JSON map[string]interface{}
 
-var FailureThreshold = make(map[string]int)
-var SuccessThreshold = make(map[string]int)
+var (
+	thresholdMutex   sync.Mutex
+	FailureThreshold = make(map[string]int)
+	SuccessThreshold = make(map[string]int)
+)
+
+const (
+	LIMIT_MAX_FAILURE = 10000
+	LIMIT_MAX_SUCCESS = 10000
+)
 
 type Handler struct {
 	Services []config.Service
@@ -36,7 +45,6 @@ func (h Handler) Check(w http.ResponseWriter, r *http.Request) {
 func checkService(service config.Service) {
 	log.Printf("[%s] Checking service...", service.Name)
 
-	// Виконати HTTP-запит до сервісу
 	client := &http.Client{}
 	req, err := http.NewRequest(service.Method, service.URL, strings.NewReader(service.Body))
 	defer req.Body.Close()
@@ -46,12 +54,12 @@ func checkService(service config.Service) {
 		return
 	}
 
-	// Додати заголовки до запиту
-	for _, header := range service.Headers {
-		req.Header.Add(header.Name, header.Value)
+	if service.Headers != nil {
+		for _, header := range service.Headers {
+			req.Header.Add(header.Name, header.Value)
+		}
 	}
 
-	// Виконати HTTP-запит
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("[%s] Error making HTTP request", service.Name)
@@ -60,38 +68,40 @@ func checkService(service config.Service) {
 	}
 	defer resp.Body.Close()
 
-	// Перевірити статус відповіді
 	if resp.StatusCode != service.Response.Status {
 		log.Printf("[%s] Unexpected response status: %d", service.Name, resp.StatusCode)
 		sendAlerts(service, false)
 		return
 	}
 
-	// Перевірити тіло відповіді
-	_, err = ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("[%s] Error reading response body: %s", service.Name, err)
 		sendAlerts(service, false)
 		return
 	}
 
-	// if string(body) != service.Response.Body {
-	// 	log.Printf("[%s] Unexpected response body: %s", service.Name, string(body))
-	// 	sendAlerts(service, false)
-	// 	return
-	// }
+	if service.Response.Body != "" {
+		if string(body) != service.Response.Body {
+			log.Printf("[%s] Unexpected response body: %s", service.Name, string(body))
+			sendAlerts(service, false)
+			return
+		}
+	}
 
 	log.Printf("[%s] Service is reachable and responding as expected", service.Name)
 	sendAlerts(service, true)
 }
 
 func sendAlerts(service config.Service, success bool) {
+	thresholdMutex.Lock()
+	defer thresholdMutex.Unlock()
+
 	for _, alert := range service.Alerts {
 		alertName := service.Name + "_" + alert.Name
 		if success {
-			if FailureThreshold[alertName]+1 >= alert.Failure && SuccessThreshold[alertName]+1 >= alert.Success {
+			if SuccessThreshold[alertName]+1 >= alert.Success && FailureThreshold[alertName] != 0 {
 				if alert.SendOnResolve {
-					// Відправити додатковий алерт про відновлення
 					resolveMessage := fmt.Sprintf("[%s] Service has recovered", service.Name)
 					sendAlert(alert, resolveMessage)
 				}
@@ -102,13 +112,20 @@ func sendAlerts(service config.Service, success bool) {
 				SuccessThreshold[alertName]++
 			}
 		} else {
+			FailureThreshold[alertName]++
 			log.Printf("[%s] Service Failure %d", service.Name, FailureThreshold[alert.Name])
 			log.Printf("[%s] Count: %d", alertName, FailureThreshold[alertName])
-			if FailureThreshold[alertName]+1 == alert.Failure {
+			if FailureThreshold[alertName] == alert.Failure {
 				message := fmt.Sprintf("[%s] Service %s", service.Name, map[bool]string{true: "recovered", false: "unreachable"}[success])
 				sendAlert(alert, message)
 			}
-			FailureThreshold[alertName]++
+		}
+
+		if FailureThreshold[alertName] > LIMIT_MAX_FAILURE {
+			FailureThreshold[alertName] = 0
+		}
+		if SuccessThreshold[alertName] > LIMIT_MAX_SUCCESS {
+			SuccessThreshold[alertName] = 0
 		}
 	}
 }
