@@ -14,6 +14,9 @@ import (
 
 type JSON map[string]interface{}
 
+var FailureThreshold = make(map[string]int)
+var SuccessThreshold = make(map[string]int)
+
 type Handler struct {
 	Services []config.Service
 }
@@ -36,8 +39,10 @@ func checkService(service config.Service) {
 	// Виконати HTTP-запит до сервісу
 	client := &http.Client{}
 	req, err := http.NewRequest(service.Method, service.URL, strings.NewReader(service.Body))
+	defer req.Body.Close()
 	if err != nil {
 		log.Printf("[%s] Error creating HTTP request: %s", service.Name, err)
+		sendAlerts(service, false)
 		return
 	}
 
@@ -49,7 +54,7 @@ func checkService(service config.Service) {
 	// Виконати HTTP-запит
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Printf("[%s] Error making HTTP request: %s", service.Name, err)
+		log.Printf("[%s] Error making HTTP request", service.Name)
 		sendAlerts(service, false)
 		return
 	}
@@ -82,25 +87,28 @@ func checkService(service config.Service) {
 
 func sendAlerts(service config.Service, success bool) {
 	for _, alert := range service.Alerts {
+		alertName := service.Name + "_" + alert.Name
 		if success {
-			if alert.Success > 0 {
-				alert.Success--
-				continue
+			if FailureThreshold[alertName]+1 >= alert.Failure && SuccessThreshold[alertName]+1 >= alert.Success {
+				if alert.SendOnResolve {
+					// Відправити додатковий алерт про відновлення
+					resolveMessage := fmt.Sprintf("[%s] Service has recovered", service.Name)
+					sendAlert(alert, resolveMessage)
+				}
+				FailureThreshold[alertName] = 0
+				SuccessThreshold[alertName] = 0
+			}
+			if FailureThreshold[alertName] > 0 {
+				SuccessThreshold[alertName]++
 			}
 		} else {
-			if alert.Failure > 0 {
-				alert.Failure--
-				continue
+			log.Printf("[%s] Service Failure %d", service.Name, FailureThreshold[alert.Name])
+			log.Printf("[%s] Count: %d", alertName, FailureThreshold[alertName])
+			if FailureThreshold[alertName]+1 == alert.Failure {
+				message := fmt.Sprintf("[%s] Service %s", service.Name, map[bool]string{true: "recovered", false: "unreachable"}[success])
+				sendAlert(alert, message)
 			}
-		}
-
-		message := fmt.Sprintf("[%s] Service %s", service.Name, map[bool]string{true: "recovered", false: "unreachable"}[success])
-		sendAlert(alert, message)
-
-		if success && alert.SendOnResolve {
-			// Відправити додатковий алерт про відновлення
-			resolveMessage := fmt.Sprintf("[%s] Service has recovered", service.Name)
-			sendAlert(alert, resolveMessage)
+			FailureThreshold[alertName]++
 		}
 	}
 }
