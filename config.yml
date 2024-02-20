@@ -1,6 +1,6 @@
 services:
   - name: google
-    url: https://www.googlee.com
+    url: https://www.googlers.com
     method: GET
     type: http
     body: ""
