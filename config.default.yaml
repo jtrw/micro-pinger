@@ -13,7 +13,7 @@ services:
       body: ""
     alerts:
       - name: devops
-        type: email
+        type: telegram
         to: ""
         failure: 3
         success: 3
@@ -38,7 +38,7 @@ services:
       body: ""
     alerts:
       - name: devops
-        type: email
+        type: telegram
         to: ""
         failure: 3
         success: 3
