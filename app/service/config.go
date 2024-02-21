@@ -34,6 +34,7 @@ type Response struct {
 type Alert struct {
 	Name          string `yaml:"name"`
 	Type          string `yaml:"type"`
+	Webhook       string `yaml:"webhook"`
 	To            string `yaml:"to"`
 	Failure       int    `yaml:"failure"`
 	Success       int    `yaml:"success"`

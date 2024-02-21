@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"micro-pinger/v2/app/sender"
 	config "micro-pinger/v2/app/service"
 	"net/http"
 	"strings"
@@ -136,7 +137,8 @@ func sendAlert(alert config.Alert, message string) {
 		// Реалізуйте відправку електронної пошти
 		log.Printf("[%s] Sending email alert to %s: %s", alert.Name, alert.To, message)
 	case "slack":
-		// Реалізуйте відправку повідомлення в Slack
+		slackSender := sender.NewSlack(alert.Webhook)
+		slackSender.Send(message)
 		log.Printf("[%s] Sending Slack alert to %s: %s", alert.Name, alert.To, message)
 	default:
 		log.Printf("[%s] Unsupported alert type: %s", alert.Name, alert.Type)
