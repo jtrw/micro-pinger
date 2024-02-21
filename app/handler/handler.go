@@ -133,9 +133,10 @@ func sendAlerts(service config.Service, success bool) {
 
 func sendAlert(alert config.Alert, message string) {
 	switch alert.Type {
-	case "email":
-		// Реалізуйте відправку електронної пошти
-		log.Printf("[%s] Sending email alert to %s: %s", alert.Name, alert.To, message)
+	case "telegram":
+		telegramSender := sender.NewTelegram(alert.Webhook)
+		telegramSender.Send(message)
+		log.Printf("[%s] Sending Telegram alert to %s: %s", alert.Name, alert.To, message)
 	case "slack":
 		slackSender := sender.NewSlack(alert.Webhook)
 		slackSender.Send(message)
