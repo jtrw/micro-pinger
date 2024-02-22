@@ -51,7 +51,12 @@ func checkService(service config.Service) {
 	defer req.Body.Close()
 	if err != nil {
 		log.Printf("[%s] Error creating HTTP request: %s", service.Name, err)
-		sendAlerts(service, false)
+		errMsg := sender.ErrorMsg{
+			Text: "Error creating HTTP request",
+			Code: 500,
+			Err:  err,
+		}
+		sendAlerts(service, errMsg)
 		return
 	}
 
@@ -64,56 +69,83 @@ func checkService(service config.Service) {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("[%s] Error making HTTP request", service.Name)
-		sendAlerts(service, false)
+		errMsg := sender.ErrorMsg{
+			Text: "Error making HTTP request",
+			Code: 500,
+			Err:  err,
+		}
+		sendAlerts(service, errMsg)
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != service.Response.Status {
 		log.Printf("[%s] Unexpected response status: %d", service.Name, resp.StatusCode)
-		sendAlerts(service, false)
+		errMsg := sender.ErrorMsg{
+			Text: "Unexpected response status",
+			Code: resp.StatusCode,
+			Err:  nil,
+		}
+		sendAlerts(service, errMsg)
 		return
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Printf("[%s] Error reading response body: %s", service.Name, err)
-		sendAlerts(service, false)
+		errMsg := sender.ErrorMsg{
+			Text: "Error reading response body",
+			Code: resp.StatusCode,
+			Err:  err,
+		}
+		sendAlerts(service, errMsg)
 		return
 	}
 
 	if service.Response.Body != "" {
 		if string(body) != service.Response.Body {
 			log.Printf("[%s] Unexpected response body: %s", service.Name, string(body))
-			sendAlerts(service, false)
+			errMsg := sender.ErrorMsg{
+				Text: "Unexpected response body",
+				Code: resp.StatusCode,
+				Err:  nil,
+			}
+			sendAlerts(service, errMsg)
 			return
 		}
 	}
 
 	log.Printf("[%s] Service is reachable and responding as expected", service.Name)
-	sendAlerts(service, true)
+	sendAlerts(service, sender.ErrorMsg{Code: 200})
 }
 
-func sendAlerts(service config.Service, success bool) {
+func sendAlerts(service config.Service, errMsg sender.ErrorMsg) {
 	thresholdMutex.Lock()
 	defer thresholdMutex.Unlock()
 
 	for _, alert := range service.Alerts {
-
 		msg := sender.Message{
-			Text:        "",
+			Status:      "",
 			Webhook:     alert.Webhook,
 			Datetime:    time.Now().Format("2006-01-02 15:04:05"),
 			Url:         service.URL,
 			ServiceName: service.Name,
+			ErrorMsg:    errMsg,
 		}
 
 		alertName := service.Name + "_" + alert.Name
-		if success {
+		if len(errMsg.Text) > 0 {
+			FailureThreshold[alertName]++
+			if FailureThreshold[alertName] == alert.Failure {
+				message := fmt.Sprintf("[%s] Service unreachable", service.Name)
+				msg.Status = message
+				sendAlert(alert, msg)
+			}
+		} else {
 			if SuccessThreshold[alertName]+1 >= alert.Success && FailureThreshold[alertName] != 0 {
 				if alert.SendOnResolve {
 					resolveMessage := fmt.Sprintf("[%s] Service has recovered", service.Name)
-					msg.Text = resolveMessage
+					msg.Status = resolveMessage
 					sendAlert(alert, msg)
 				}
 				FailureThreshold[alertName] = 0
@@ -121,13 +153,6 @@ func sendAlerts(service config.Service, success bool) {
 			}
 			if FailureThreshold[alertName] > 0 {
 				SuccessThreshold[alertName]++
-			}
-		} else {
-			FailureThreshold[alertName]++
-			if FailureThreshold[alertName] == alert.Failure {
-				message := fmt.Sprintf("[%s] Service %s", service.Name, map[bool]string{true: "recovered", false: "unreachable"}[success])
-				msg.Text = message
-				sendAlert(alert, msg)
 			}
 		}
 
@@ -141,7 +166,9 @@ func sendAlerts(service config.Service, success bool) {
 }
 
 func sendAlert(alert config.Alert, message sender.Message) {
-
 	sendService := sender.NewSender(alert.Type, message)
-	sendService.Send()
+	err := sendService.Send()
+	if err != nil {
+		log.Printf("Error sending alert: %s", err)
+	}
 }

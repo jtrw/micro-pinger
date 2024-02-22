@@ -20,7 +20,7 @@ func NewSlack(message Message) Slack {
 }
 
 func (s Slack) Send() error {
-	slackMessage := SlackMessage{Text: s.Message.Text}
+	slackMessage := SlackMessage{Text: s.Message.Status}
 	jsonMessage, err := json.Marshal(slackMessage)
 	if err != nil {
 		return err

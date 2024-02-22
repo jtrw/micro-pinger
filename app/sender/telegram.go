@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 )
 
@@ -22,13 +21,15 @@ func NewTelegram(message Message) Telegram {
 }
 
 func (t Telegram) Send() error {
-	telegramMessage := TelegramMessage{Text: t.Message.Text, ParseMode: "html"}
+
+	msg := getTextMessage(t.Message)
+
+	telegramMessage := TelegramMessage{Text: msg, ParseMode: "markdown"}
 	jsonMessage, err := json.Marshal(telegramMessage)
 	if err != nil {
 		return err
 	}
-	log.Printf("Telegram message: %v", string(jsonMessage))
-	log.Printf("Telegram webhook: %v", t.Message.Webhook)
+
 	_, err = t.post(t.Message.Webhook, jsonMessage)
 	if err != nil {
 		return err
@@ -37,14 +38,19 @@ func (t Telegram) Send() error {
 	return nil
 }
 
+func getTextMessage(message Message) string {
+	msg := fmt.Sprintf("*Service:* %s\n*Status:* %s\n*Datetime:* %s\n*URL:* %s\n*Error:* %s\n*Code:* %d",
+		message.ServiceName, message.Status, message.Datetime, message.Url, message.ErrorMsg.Text, message.ErrorMsg.Code)
+
+	return msg
+}
+
 func (t Telegram) post(url string, data []byte) (string, error) {
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-
-	log.Printf("Telegram response: %v", resp)
 
 	if resp.StatusCode != 200 {
 		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
