@@ -11,7 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
-	//"time"
+	"time"
 )
 
 type JSON map[string]interface{}
@@ -99,12 +99,22 @@ func sendAlerts(service config.Service, success bool) {
 	defer thresholdMutex.Unlock()
 
 	for _, alert := range service.Alerts {
+
+		msg := sender.Message{
+			Text:        "",
+			Webhook:     alert.Webhook,
+			Datetime:    time.Now().Format("2006-01-02 15:04:05"),
+			Url:         service.URL,
+			ServiceName: service.Name,
+		}
+
 		alertName := service.Name + "_" + alert.Name
 		if success {
 			if SuccessThreshold[alertName]+1 >= alert.Success && FailureThreshold[alertName] != 0 {
 				if alert.SendOnResolve {
 					resolveMessage := fmt.Sprintf("[%s] Service has recovered", service.Name)
-					sendAlert(alert, resolveMessage)
+					msg.Text = resolveMessage
+					sendAlert(alert, msg)
 				}
 				FailureThreshold[alertName] = 0
 				SuccessThreshold[alertName] = 0
@@ -114,11 +124,10 @@ func sendAlerts(service config.Service, success bool) {
 			}
 		} else {
 			FailureThreshold[alertName]++
-			log.Printf("[%s] Service Failure %d", service.Name, FailureThreshold[alert.Name])
-			log.Printf("[%s] Count: %d", alertName, FailureThreshold[alertName])
 			if FailureThreshold[alertName] == alert.Failure {
 				message := fmt.Sprintf("[%s] Service %s", service.Name, map[bool]string{true: "recovered", false: "unreachable"}[success])
-				sendAlert(alert, message)
+				msg.Text = message
+				sendAlert(alert, msg)
 			}
 		}
 
@@ -131,17 +140,8 @@ func sendAlerts(service config.Service, success bool) {
 	}
 }
 
-func sendAlert(alert config.Alert, message string) {
-	switch alert.Type {
-	case "telegram":
-		telegramSender := sender.NewTelegram(alert.Webhook)
-		telegramSender.Send(message)
-		log.Printf("[%s] Sending Telegram alert to %s: %s", alert.Name, alert.To, message)
-	case "slack":
-		slackSender := sender.NewSlack(alert.Webhook)
-		slackSender.Send(message)
-		log.Printf("[%s] Sending Slack alert to %s: %s", alert.Name, alert.To, message)
-	default:
-		log.Printf("[%s] Unsupported alert type: %s", alert.Name, alert.Type)
-	}
+func sendAlert(alert config.Alert, message sender.Message) {
+
+	sendService := sender.NewSender(alert.Type, message)
+	sendService.Send()
 }

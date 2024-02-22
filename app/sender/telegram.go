@@ -9,7 +9,7 @@ import (
 )
 
 type Telegram struct {
-	Webhook string
+	Message Message
 }
 
 type TelegramMessage struct {
@@ -17,19 +17,19 @@ type TelegramMessage struct {
 	ParseMode string `json:"parse_mode"`
 }
 
-func NewTelegram(webhook string) Telegram {
-	return Telegram{Webhook: webhook}
+func NewTelegram(message Message) Telegram {
+	return Telegram{Message: message}
 }
 
-func (t Telegram) Send(message string) error {
-	telegramMessage := TelegramMessage{Text: message, ParseMode: "html"}
+func (t Telegram) Send() error {
+	telegramMessage := TelegramMessage{Text: t.Message.Text, ParseMode: "html"}
 	jsonMessage, err := json.Marshal(telegramMessage)
 	if err != nil {
 		return err
 	}
 	log.Printf("Telegram message: %v", string(jsonMessage))
-	log.Printf("Telegram webhook: %v", t.Webhook)
-	_, err = t.post(t.Webhook, jsonMessage)
+	log.Printf("Telegram webhook: %v", t.Message.Webhook)
+	_, err = t.post(t.Message.Webhook, jsonMessage)
 	if err != nil {
 		return err
 	}

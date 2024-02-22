@@ -8,25 +8,25 @@ import (
 )
 
 type Slack struct {
-	Webhook string
+	Message Message
 }
 
 type SlackMessage struct {
 	Text string `json:"text"`
 }
 
-func NewSlack(webhook string) Slack {
-	return Slack{Webhook: webhook}
+func NewSlack(message Message) Slack {
+	return Slack{Message: message}
 }
 
-func (s Slack) Send(message string) error {
-	slackMessage := SlackMessage{Text: message}
+func (s Slack) Send() error {
+	slackMessage := SlackMessage{Text: s.Message.Text}
 	jsonMessage, err := json.Marshal(slackMessage)
 	if err != nil {
 		return err
 	}
 
-	_, err = s.post(s.Webhook, jsonMessage)
+	_, err = s.post(s.Message.Webhook, jsonMessage)
 	if err != nil {
 		return err
 	}
