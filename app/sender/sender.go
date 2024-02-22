@@ -3,12 +3,18 @@ package sender
 import "log"
 
 type Message struct {
-	Text        string
+	Status      string
 	Webhook     string
 	Datetime    string
-	StatusCode  int
 	Url         string
 	ServiceName string
+	ErrorMsg    ErrorMsg
+}
+
+type ErrorMsg struct {
+	Text string
+	Err  error
+	Code int
 }
 
 type Sender interface {
