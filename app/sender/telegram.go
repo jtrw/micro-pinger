@@ -38,13 +38,6 @@ func (t Telegram) Send() error {
 	return nil
 }
 
-func getTextMessage(message Message) string {
-	msg := fmt.Sprintf("*Service:* %s\n*Status:* %s\n*Datetime:* %s\n*URL:* %s\n*Error:* %s\n*Code:* %d",
-		message.ServiceName, message.Status, message.Datetime, message.Url, message.ErrorMsg.Text, message.ErrorMsg.Code)
-
-	return msg
-}
-
 func (t Telegram) post(url string, data []byte) (string, error) {
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {

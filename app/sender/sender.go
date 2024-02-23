@@ -1,6 +1,9 @@
 package sender
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 type Message struct {
 	Status      string
@@ -8,10 +11,10 @@ type Message struct {
 	Datetime    string
 	Url         string
 	ServiceName string
-	ErrorMsg    ErrorMsg
+	Response    Response
 }
 
-type ErrorMsg struct {
+type Response struct {
 	Text string
 	Err  error
 	Code int
@@ -31,4 +34,14 @@ func NewSender(senderType string, message Message) Sender {
 		log.Printf("[%s] Unsupported alert type: %s", message.ServiceName, senderType)
 	}
 	return nil
+}
+
+func getTextMessage(message Message) string {
+	if message.Response.Err != nil {
+		return fmt.Sprintf("*Service:* %s\n*Status:* %s\n*Datetime:* %s\n*URL:* %s\n*Error:* %s",
+			message.ServiceName, message.Status, message.Datetime, message.Url, message.Response.Err.Error())
+	}
+
+	return fmt.Sprintf("*Service:* %s\n*Status:* %s\n*Datetime:* %s\n*URL:* %s",
+		message.ServiceName, message.Status, message.Datetime, message.Url)
 }
