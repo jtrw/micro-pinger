@@ -13,10 +13,7 @@ import (
 	"micro-pinger/v2/app/handler"
 	config "micro-pinger/v2/app/service"
 	"net/http"
-	///	"os"//
-	//	"strings"
 	"time"
-	//"fmt"
 )
 
 type Server struct {

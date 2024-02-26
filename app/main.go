@@ -2,15 +2,12 @@ package main
 
 import (
 	"context"
-	//	"fmt"
 	"github.com/jessevdk/go-flags"
 	"log"
 	server "micro-pinger/v2/app/server"
 	config "micro-pinger/v2/app/service"
-	//"net/http"
 	"os"
 	"os/signal"
-	//"strings"
 	"syscall"
 	"time"
 )

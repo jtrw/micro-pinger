@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	//	"github.com/go-chi/chi/v5"
 	"fmt"
 	"io/ioutil"
 	"log"

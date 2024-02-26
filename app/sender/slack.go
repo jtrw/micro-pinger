@@ -15,11 +15,11 @@ type SlackMessage struct {
 	Text string `json:"text"`
 }
 
-func NewSlack(message Message) Slack {
-	return Slack{Message: message}
+func NewSlack(message Message) Sender {
+	return &Slack{Message: message}
 }
 
-func (s Slack) Send() error {
+func (s *Slack) Send() error {
 	msg := getTextMessage(s.Message)
 	slackMessage := SlackMessage{Text: msg}
 	jsonMessage, err := json.Marshal(slackMessage)
@@ -35,7 +35,7 @@ func (s Slack) Send() error {
 	return nil
 }
 
-func (s Slack) post(url string, data []byte) (string, error) {
+func (s *Slack) post(url string, data []byte) (string, error) {
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
 		return "", err
