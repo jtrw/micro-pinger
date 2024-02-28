@@ -123,3 +123,41 @@ func TestSlack_Send(t *testing.T) {
 		t.Errorf("Error sending message to Slack: %v", err)
 	}
 }
+
+func TestSlack_Send_Error(t *testing.T) {
+	// Create a sample message for testing
+	message := Message{
+		Status:      "OK",
+		Webhook:     "https://example.com/slack-webhook",
+		Datetime:    "2024-02-28T12:34:56",
+		Url:         "https://example.com",
+		ServiceName: "TestService",
+		Response: Response{
+			Text: "Test message",
+			Err:  errors.New("test error"),
+			Code: 500,
+		},
+	}
+
+	// Create a mock server to simulate Slack API response
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Respond with an error message
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("error"))
+	}))
+	defer mockServer.Close()
+
+	// Set the mock server URL as the Slack webhook
+	message.Webhook = mockServer.URL
+
+	// Create a Slack sender with the mock message
+	slackSender := NewSlack(message)
+
+	// Call the Send method
+	err := slackSender.Send()
+
+	// Check for errors
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+}
