@@ -113,7 +113,7 @@ func TestSlack_Send(t *testing.T) {
 	message.Webhook = mockServer.URL
 
 	// Create a Slack sender with the mock message
-	slackSender := NewSlack(message)
+	slackSender := NewSender("slack", message)
 
 	// Call the Send method
 	err := slackSender.Send()
@@ -151,7 +151,7 @@ func TestSlack_Send_Error(t *testing.T) {
 	message.Webhook = mockServer.URL
 
 	// Create a Slack sender with the mock message
-	slackSender := NewSlack(message)
+	slackSender := NewSender("slack", message)
 
 	// Call the Send method
 	err := slackSender.Send()
