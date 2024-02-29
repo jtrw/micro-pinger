@@ -30,22 +30,26 @@ type Handler struct {
 	Services []config.Service
 }
 
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 func NewHandler(services []config.Service) Handler {
 	return Handler{Services: services}
 }
 
 func (h Handler) Check(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	client := &http.Client{}
 	for _, service := range h.Services {
-		go checkService(service)
+		go h.CheckService(client, service)
 	}
 	json.NewEncoder(w).Encode(JSON{"status": "ok"})
 }
 
-func checkService(service config.Service) {
+func (h Handler) CheckService(client HTTPClient, service config.Service) {
 	log.Printf("[%s] Checking service...", service.Name)
 
-	client := &http.Client{}
 	req, err := http.NewRequest(service.Method, service.URL, strings.NewReader(service.Body))
 	defer req.Body.Close()
 	if err != nil {
