@@ -2,89 +2,72 @@
 package main
 
 import (
-	"context"
-	"testing"
-	//	"time"
-
-	"github.com/stretchr/testify/mock"
+	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	server "micro-pinger/v2/app/server"
-	config "micro-pinger/v2/app/service"
+	"io"
+	"math/rand"
+	"net/http"
+	"os"
+	"strconv"
+	"syscall"
+	"testing"
+	"time"
 )
 
-type MockConfigLoader struct {
-	mock.Mock
-}
+func Test_main(t *testing.T) {
+	port := 40000 + int(rand.Int31n(10000))
+	os.Args = []string{"app", "--secret=123", "--config=../config.default.yaml", "--listen=" + "localhost:" + strconv.Itoa(port)}
 
-func (m *MockConfigLoader) LoadConfig(filename string) (config.Config, error) {
-	args := m.Called(filename)
-	return args.Get(0).(config.Config), args.Error(1)
-}
-
-func TestMain(t *testing.T) {
-	// Mock ConfigLoaderFunc
-	mockConfigLoader := new(MockConfigLoader)
-	//loadConfigFunc = mockConfigLoader.LoadConfig
-
-	// Expect LoadConfig to be called with "test-config.yml" and return a mock configuration
-	mockConfig := config.Config{ /* mocked configuration data */ }
-	mockConfigLoader.On("LoadConfig", "config.default.yaml").Return(mockConfig, nil)
-
-	// Run the main function in a goroutine
-	_, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
+	done := make(chan struct{})
 	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				t.Errorf("Unexpected panic: %v", r)
-			}
-		}()
-
-		// Set the config file to "test-config.yml" for the test
-		opts := Options{Config: "config.default.yaml"}
-		err := mainWithOptions(opts)
-
-		// Check the error returned by the main function
-		require.NoError(t, err)
+		<-done
+		e := syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
+		require.NoError(t, e)
 	}()
-	cancel()
 
-	// // Wait for the main function to finish
-	// select {
-	// case <-time.After(5 * time.Second):
-	// 	t.Fatal("Timeout: main function did not finish")
-	// case <-ctx.Done():
-	// }
+	finished := make(chan struct{})
+	go func() {
+		main()
+		close(finished)
+	}()
 
-	// // Assert that LoadConfig was called with the correct arguments
-	// mockConfigLoader.AssertExpectations(t)
+	// defer cleanup because require check below can fail
+	defer func() {
+		close(done)
+		<-finished
+	}()
+
+	waitForHTTPServerStart(port)
+	time.Sleep(time.Second)
+	client := &http.Client{}
+
+	{
+		url := fmt.Sprintf("http://localhost:%d/ping", port)
+		req, err := getRequest(url)
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		assert.Equal(t, 200, resp.StatusCode)
+		body, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		assert.Equal(t, "pong", string(body))
+	}
 }
 
-func mainWithOptions(opts Options) error {
-	// Function similar to main but taking Options as an argument
-	// This allows us to run the main function with different configurations in tests
-	var configLoader config.ConfigLoader
-	configLoader = &config.ConfigLoaderImpl{}
-	cnf, err := configLoader.LoadConfig(opts.Config)
-
-	if err != nil {
-		return err
+func waitForHTTPServerStart(port int) {
+	// wait for up to 10 seconds for server to start before returning it
+	client := http.Client{Timeout: time.Second}
+	for i := 0; i < 100; i++ {
+		time.Sleep(time.Millisecond * 100)
+		if resp, err := client.Get(fmt.Sprintf("http://localhost:%d/ping", port)); err == nil {
+			_ = resp.Body.Close()
+			return
+		}
 	}
+}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	srv := server.Server{
-		Listen:         opts.Listen,
-		PinSize:        opts.PinSize,
-		MaxExpire:      opts.MaxExpire,
-		MaxPinAttempts: opts.MaxPinAttempts,
-		WebRoot:        opts.WebRoot,
-		Secret:         opts.Secret,
-		Version:        revision,
-		Config:         cnf,
-	}
-
-	return srv.Run(ctx)
+func getRequest(url string) (*http.Request, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	return req, err
 }

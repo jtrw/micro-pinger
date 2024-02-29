@@ -5,12 +5,6 @@ import (
 	"io/ioutil"
 )
 
-type ConfigLoader interface {
-	LoadConfig(filename string) (Config, error)
-}
-
-type ConfigLoaderImpl struct{}
-
 type Config struct {
 	Service []Service `yaml:"services"`
 }
@@ -47,7 +41,7 @@ type Alert struct {
 	SendOnResolve bool   `yaml:"send-on-resolve"`
 }
 
-func (cl *ConfigLoaderImpl) LoadConfig(filename string) (Config, error) {
+func LoadConfig(filename string) (Config, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return Config{}, err

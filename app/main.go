@@ -33,8 +33,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	configLoader := config.ConfigLoaderImpl{}
-	cnf, err := configLoader.LoadConfig(opts.Config)
+
+	cnf, err := config.LoadConfig(opts.Config)
 	if err != nil {
 		log.Fatal(err)
 	}
