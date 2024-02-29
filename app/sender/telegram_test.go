@@ -101,10 +101,13 @@ func TestTelegram_Send(t *testing.T) {
 
 	message.Webhook = mockServer.URL
 
-	telegramSender := NewSender("telegram", message)
+	telegramSender, err := NewSender("telegram", message)
+	if err != nil {
+		t.Errorf("Error creating Telegram sender: %v", err)
+	}
 
 	// Call the Send method
-	err := telegramSender.Send()
+	err = telegramSender.Send()
 
 	// Check for errors
 	if err != nil {
@@ -137,10 +140,13 @@ func TestTelegram_SendError(t *testing.T) {
 
 	message.Webhook = mockServer.URL
 
-	telegramSender := NewSender("telegram", message)
+	telegramSender, err := NewSender("telegram", message)
+	if err != nil {
+		t.Errorf("Error creating Telegram sender: %v", err)
+	}
 
 	// Call the Send method
-	err := telegramSender.Send()
+	err = telegramSender.Send()
 
 	// Check for errors
 	if err == nil {

@@ -165,8 +165,12 @@ func sendAlerts(service config.Service, response sender.Response) {
 }
 
 func sendAlert(alert config.Alert, message sender.Message) {
-	sendService := sender.NewSender(alert.Type, message)
-	err := sendService.Send()
+	sendService, err := sender.NewSender(alert.Type, message)
+	if err != nil {
+		log.Printf("Error creating alert sender: %s", err)
+		return
+	}
+	err = sendService.Send()
 	if err != nil {
 		log.Printf("Error sending alert: %s", err)
 	}

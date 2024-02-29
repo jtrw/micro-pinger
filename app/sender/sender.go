@@ -24,16 +24,17 @@ type Sender interface {
 	Send() error
 }
 
-func NewSender(senderType string, message Message) Sender {
+func NewSender(senderType string, message Message) (Sender, error) {
 	switch senderType {
 	case "telegram":
-		return NewTelegram(message)
+		return NewTelegram(message), nil
 	case "slack":
-		return NewSlack(message)
+		return NewSlack(message), nil
 	default:
-		log.Printf("[%s] Unsupported alert type: %s", message.ServiceName, senderType)
+		log.Printf("[%s] Unsupported sender type: %s", message.ServiceName, senderType)
+		return nil, fmt.Errorf("unsupported sender type: %s", senderType)
 	}
-	return nil
+	return nil, nil
 }
 
 func getTextMessage(message Message) string {

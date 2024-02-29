@@ -113,10 +113,13 @@ func TestSlack_Send(t *testing.T) {
 	message.Webhook = mockServer.URL
 
 	// Create a Slack sender with the mock message
-	slackSender := NewSender("slack", message)
+	slackSender, err := NewSender("slack", message)
+	if err != nil {
+		t.Errorf("Error creating Slack sender: %v", err)
+	}
 
 	// Call the Send method
-	err := slackSender.Send()
+	err = slackSender.Send()
 
 	// Check for errors
 	if err != nil {
@@ -151,10 +154,13 @@ func TestSlack_Send_Error(t *testing.T) {
 	message.Webhook = mockServer.URL
 
 	// Create a Slack sender with the mock message
-	slackSender := NewSender("slack", message)
+	slackSender, err := NewSender("slack", message)
+	if err != nil {
+		t.Errorf("Error creating Slack sender: %v", err)
+	}
 
 	// Call the Send method
-	err := slackSender.Send()
+	err = slackSender.Send()
 
 	// Check for errors
 	if err == nil {
