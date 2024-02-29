@@ -42,9 +42,8 @@ services:
 	assert.NoError(t, err)
 
 	// Load configuration from the temporary file
-	cnf := ConfigLoaderImpl{}
 	configFile := tempFile.Name()
-	config, err := cnf.LoadConfig(configFile)
+	config, err := LoadConfig(configFile)
 
 	// Assertions based on your expectations
 	assert.NoError(t, err, "Expected no error loading config")
