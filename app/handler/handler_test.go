@@ -1,50 +1,59 @@
 package handler
 
 import (
-	//"bytes"
-	//"errors"
+	//"log"
+	config "micro-pinger/v2/app/service"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	//"io/ioutil"
-	config "micro-pinger/v2/app/service"
+	"time"
 )
 
-// MockSender is a mock implementation of the Sender interface.
-type MockSender struct {
-	sendFunc func() error
-}
-
-func (m *MockSender) Send() error {
-	return m.sendFunc()
-}
-
 func TestHandler_Check(t *testing.T) {
-	// Test case for Handler.Check function
-	t.Run("CheckServices", func(t *testing.T) {
-		// Mock HTTP request
-		req, err := http.NewRequest("GET", "/check", nil)
-		assert.NoError(t, err)
+	// Create a sample handler with one service for testing
+	sampleService := config.Service{
+		Name: "SampleService",
+		URL:  "https://bad123456.com",
+		Response: config.Response{
+			Status: http.StatusOK,
+			Body:   "OK",
+		},
+		Alerts: []config.Alert{
+			{
+				Name:          "SampleAlert",
+				Webhook:       "https://hooks.slack.com/services/123456/7890",
+				Type:          "slack",
+				Failure:       3,
+				Success:       2,
+				SendOnResolve: true,
+			},
+		},
+	}
+	handler := NewHandler([]config.Service{sampleService})
 
-		// Mock HTTP response recorder
+	// Create a mock server to simulate successful responses
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	}))
+	defer mockServer.Close()
+
+	// Set the mock server URL as the service URL
+	sampleService.URL = mockServer.URL
+
+	// Perform the Check operation
+	for i := 0; i < 3; i++ {
 		w := httptest.NewRecorder()
-
-		// Create a Handler with services
-		services := []config.Service{
-			// Add your test services here
+		r, _ := http.NewRequest("GET", "/check", nil)
+		handler.Check(w, r)
+		if w.Code != http.StatusOK {
+			t.Errorf("Expected status code %d, got %d", http.StatusOK, w.Code)
 		}
-		handler := NewHandler(services)
+	}
 
-		// Call Check function
-		handler.Check(w, req)
+	time.Sleep(1 * time.Second)
 
-		// Check HTTP response status
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		// Verify the response body (assuming you have a valid JSON response)
-		expectedResponse := `{"status":"ok"}` + "\n"
-		assert.Equal(t, expectedResponse, w.Body.String())
-	})
+	if FailureThreshold["SampleService_SampleAlert"] != 3 {
+		t.Errorf("Expected FailureThreshold to be 3, got %d", FailureThreshold["SampleService_SampleAlert"])
+	}
 }
