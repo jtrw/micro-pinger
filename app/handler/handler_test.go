@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 	"time"
-
+	"errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -148,4 +148,68 @@ func TestCheckServiceBadBody(t *testing.T) {
 
 	assert.Equal(t, 1, FailureThreshold[serviceName+"_SampleAlert"])
 	assert.Equal(t, 0, SuccessThreshold[serviceName+"_SampleAlert"])
+}
+
+func TestCheckServiceBadBodyMaxLimit(t *testing.T) {
+	serviceName := "SampleService_2"
+	sampleService := config.Service{
+		Name: serviceName,
+		URL:  "https://example.com",
+		Response: config.Response{
+			Status: http.StatusOK,
+			Body:   "OK",
+		},
+		Alerts: []config.Alert{
+			{
+				Name:          "SampleAlert",
+				Webhook:       "https://hooks.slack.com/services/123456/7890",
+				Type:          "slack",
+				Failure:       3,
+				Success:       2,
+				SendOnResolve: true,
+			},
+		},
+	}
+
+	handler := NewHandler([]config.Service{sampleService})
+
+	mockClient := &MockHTTPClient{StatusCode: http.StatusOK, Body: "OK"}
+	FailureThreshold[serviceName+"_SampleAlert"] = LIMIT_MAX_FAILURE
+	SuccessThreshold[serviceName+"_SampleAlert"] = LIMIT_MAX_SUCCESS
+	handler.CheckService(mockClient, sampleService)
+
+	assert.Equal(t, 0, FailureThreshold[serviceName+"_SampleAlert"])
+	assert.Equal(t, 0, SuccessThreshold[serviceName+"_SampleAlert"])
+}
+
+func TestCheckServiceBadAlertServiceName(t *testing.T) {
+	serviceName := "SampleService_2"
+	sampleService := config.Service{
+		Name: serviceName,
+		URL:  "https://example.com",
+		Response: config.Response{
+			Status: http.StatusOK,
+			Body:   "OK",
+		},
+		Alerts: []config.Alert{
+			{
+				Name:          "SampleAlert",
+				Webhook:       "https://hooks.slack.com/services/123456/7890",
+				Type:          "not_found",
+				Failure:       3,
+				Success:       2,
+				SendOnResolve: true,
+			},
+		},
+	}
+
+	handler := NewHandler([]config.Service{sampleService})
+
+	err := errors.New("")
+	for i := 0; i < 3; i++ {
+		mockClient := &MockHTTPClient{StatusCode: http.StatusBadRequest, Body: "Bad Request"}
+		err = handler.CheckService(mockClient, sampleService)
+	}
+
+	assert.Equal(t, "\nUnsupported sender type: not_found", err.Error())
 }

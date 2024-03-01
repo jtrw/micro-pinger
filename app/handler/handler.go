@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -47,7 +48,7 @@ func (h Handler) Check(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(JSON{"status": "ok"})
 }
 
-func (h Handler) CheckService(client HTTPClient, service config.Service) {
+func (h Handler) CheckService(client HTTPClient, service config.Service) error {
 	log.Printf("[%s] Checking service...", service.Name)
 
 	req, err := http.NewRequest(service.Method, service.URL, strings.NewReader(service.Body))
@@ -59,8 +60,7 @@ func (h Handler) CheckService(client HTTPClient, service config.Service) {
 			Code: 500,
 			Err:  err,
 		}
-		sendAlerts(service, errMsg)
-		return
+		return sendAlerts(service, errMsg)
 	}
 
 	if service.Headers != nil {
@@ -77,8 +77,7 @@ func (h Handler) CheckService(client HTTPClient, service config.Service) {
 			Code: 500,
 			Err:  err,
 		}
-		sendAlerts(service, errMsg)
-		return
+		return sendAlerts(service, errMsg)
 	}
 	defer resp.Body.Close()
 
@@ -89,8 +88,7 @@ func (h Handler) CheckService(client HTTPClient, service config.Service) {
 			Code: resp.StatusCode,
 			Err:  nil,
 		}
-		sendAlerts(service, errMsg)
-		return
+		return sendAlerts(service, errMsg)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
@@ -101,8 +99,7 @@ func (h Handler) CheckService(client HTTPClient, service config.Service) {
 			Code: resp.StatusCode,
 			Err:  err,
 		}
-		sendAlerts(service, errMsg)
-		return
+		return sendAlerts(service, errMsg)
 	}
 
 	if service.Response.Body != "" {
@@ -113,19 +110,18 @@ func (h Handler) CheckService(client HTTPClient, service config.Service) {
 				Code: resp.StatusCode,
 				Err:  nil,
 			}
-			sendAlerts(service, errMsg)
-			return
+			return sendAlerts(service, errMsg)
 		}
 	}
 
 	log.Printf("[%s] Service is reachable and responding as expected", service.Name)
-	sendAlerts(service, sender.Response{Code: 200})
+	return sendAlerts(service, sender.Response{Code: 200})
 }
 
-func sendAlerts(service config.Service, response sender.Response) {
+func sendAlerts(service config.Service, response sender.Response) error {
 	thresholdMutex.Lock()
 	defer thresholdMutex.Unlock()
-
+	errs := errors.New("")
 	for _, alert := range service.Alerts {
 		msg := sender.Message{
 			Status:      "",
@@ -142,14 +138,16 @@ func sendAlerts(service config.Service, response sender.Response) {
 			if FailureThreshold[alertName] == alert.Failure {
 				message := fmt.Sprintf("[%s] Service unreachable", service.Name)
 				msg.Status = message
-				sendAlert(alert, msg)
+				err := sendAlert(alert, msg)
+				errs = errors.Join(errs, err)
 			}
 		} else {
 			if SuccessThreshold[alertName]+1 >= alert.Success && FailureThreshold[alertName] != 0 {
 				if alert.SendOnResolve {
 					resolveMessage := fmt.Sprintf("[%s] Service has recovered", service.Name)
 					msg.Status = resolveMessage
-					sendAlert(alert, msg)
+					err := sendAlert(alert, msg)
+					errs = errors.Join(errs, err)
 				}
 				FailureThreshold[alertName] = 0
 				SuccessThreshold[alertName] = 0
@@ -166,16 +164,20 @@ func sendAlerts(service config.Service, response sender.Response) {
 			SuccessThreshold[alertName] = 0
 		}
 	}
+
+	return errs
 }
 
-func sendAlert(alert config.Alert, message sender.Message) {
+func sendAlert(alert config.Alert, message sender.Message) error {
 	sendService, err := sender.NewSender(alert.Type, message)
 	if err != nil {
 		log.Printf("Error creating alert sender: %s", err)
-		return
+		return err
 	}
 	err = sendService.Send()
 	if err != nil {
 		log.Printf("Error sending alert: %s", err)
+		return err
 	}
+	return nil
 }
