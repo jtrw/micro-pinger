@@ -119,3 +119,33 @@ func TestCheckService(t *testing.T) {
 	assert.Equal(t, 0, FailureThreshold[serviceName+"_SampleAlert"])
 	assert.Equal(t, 0, SuccessThreshold[serviceName+"_SampleAlert"])
 }
+
+func TestCheckServiceBadBody(t *testing.T) {
+	serviceName := "SampleService_2"
+	sampleService := config.Service{
+		Name: serviceName,
+		URL:  "https://example.com",
+		Response: config.Response{
+			Status: http.StatusOK,
+			Body:   "OK",
+		},
+		Alerts: []config.Alert{
+			{
+				Name:          "SampleAlert",
+				Webhook:       "https://hooks.slack.com/services/123456/7890",
+				Type:          "slack",
+				Failure:       3,
+				Success:       2,
+				SendOnResolve: true,
+			},
+		},
+	}
+
+	handler := NewHandler([]config.Service{sampleService})
+
+	mockClient := &MockHTTPClient{StatusCode: http.StatusOK, Body: "Not OK"}
+	handler.CheckService(mockClient, sampleService)
+
+	assert.Equal(t, 1, FailureThreshold[serviceName+"_SampleAlert"])
+	assert.Equal(t, 0, SuccessThreshold[serviceName+"_SampleAlert"])
+}
