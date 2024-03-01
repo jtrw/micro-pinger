@@ -32,9 +32,8 @@ func NewSender(senderType string, message Message) (Sender, error) {
 		return NewSlack(message), nil
 	default:
 		log.Printf("[%s] Unsupported sender type: %s", message.ServiceName, senderType)
-		return nil, fmt.Errorf("unsupported sender type: %s", senderType)
+		return nil, fmt.Errorf("Unsupported sender type: %s", senderType)
 	}
-	return nil, nil
 }
 
 func getTextMessage(message Message) string {
