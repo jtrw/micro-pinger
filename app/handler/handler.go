@@ -103,7 +103,18 @@ func (h Handler) CheckService(client HTTPClient, service config.Service) error {
 	}
 
 	if service.Response.Body != "" {
-		if string(body) != service.Response.Body {
+		switch {
+		case service.Response.Compare == "contains":
+			if !strings.Contains(string(body), service.Response.Body) {
+				log.Printf("[%s] Unexpected response body: %s", service.Name, string(body))
+				errMsg := sender.Response{
+					Text: "Body does not contain expected string '" + service.Response.Body + "'",
+					Code: resp.StatusCode,
+					Err:  nil,
+				}
+				return sendAlerts(service, errMsg)
+			}
+		default:
 			log.Printf("[%s] Unexpected response body: %s", service.Name, string(body))
 			errMsg := sender.Response{
 				Text: "Unexpected response body",

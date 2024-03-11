@@ -1,8 +1,9 @@
 package service
 
 import (
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
+
+	"gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -27,8 +28,9 @@ type Header struct {
 }
 
 type Response struct {
-	Status int    `yaml:"status"`
-	Body   string `yaml:"body"`
+	Status  int    `yaml:"status"`
+	Body    string `yaml:"body"`
+	Compare string `yaml:"compare"`
 }
 
 type Alert struct {
