@@ -115,13 +115,15 @@ func (h Handler) CheckService(client HTTPClient, service config.Service) error {
 				return sendAlerts(service, errMsg)
 			}
 		default:
-			log.Printf("[%s] Unexpected response body: %s", service.Name, string(body))
-			errMsg := sender.Response{
-				Text: "Unexpected response body",
-				Code: resp.StatusCode,
-				Err:  nil,
+			if string(body) != service.Response.Body {
+				log.Printf("[%s] Unexpected response body: %s", service.Name, string(body))
+				errMsg := sender.Response{
+					Text: "Unexpected response body",
+					Code: resp.StatusCode,
+					Err:  nil,
+				}
+				return sendAlerts(service, errMsg)
 			}
-			return sendAlerts(service, errMsg)
 		}
 	}
 

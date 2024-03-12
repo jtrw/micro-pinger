@@ -2,6 +2,7 @@ package handler
 
 import (
 	//"log"
+	"errors"
 	"io/ioutil"
 	config "micro-pinger/v2/app/service"
 	"net/http"
@@ -9,7 +10,7 @@ import (
 	"strings"
 	"testing"
 	"time"
-	"errors"
+
 	"github.com/stretchr/testify/assert"
 )
 
