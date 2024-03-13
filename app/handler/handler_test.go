@@ -37,6 +37,12 @@ func TestHandler_Check(t *testing.T) {
 			Status: http.StatusOK,
 			Body:   "OK",
 		},
+		Headers: []config.Header{
+			{
+				Name:  "Content-Type",
+				Value: "application/json",
+			},
+		},
 		Alerts: []config.Alert{
 			{
 				Name:          "SampleAlert",
@@ -88,6 +94,12 @@ func TestCheckService(t *testing.T) {
 			Status: http.StatusOK,
 			Body:   "OK",
 		},
+		Headers: []config.Header{
+			{
+				Name:  "Content-Type",
+				Value: "application/json",
+			},
+		},
 		Alerts: []config.Alert{
 			{
 				Name:          "SampleAlert",
@@ -116,6 +128,36 @@ func TestCheckService(t *testing.T) {
 
 	assert.Equal(t, 3, FailureThreshold[serviceName+"_SampleAlert"])
 	assert.Equal(t, 1, SuccessThreshold[serviceName+"_SampleAlert"])
+
+	handler.CheckService(sampleService)
+
+	assert.Equal(t, 0, FailureThreshold[serviceName+"_SampleAlert"])
+	assert.Equal(t, 0, SuccessThreshold[serviceName+"_SampleAlert"])
+}
+
+func TestCheckServiceCompareContain(t *testing.T) {
+	serviceName := "SampleService_2"
+	sampleService := config.Service{
+		Name: serviceName,
+		URL:  "https://example.com",
+		Response: config.Response{
+			Status:  http.StatusOK,
+			Compare: "contains",
+			Body:    "OK",
+		},
+		Alerts: []config.Alert{
+			{
+				Name:          "SampleAlert",
+				Webhook:       "https://hooks.slack.com/services/123456/7890",
+				Type:          "slack",
+				Failure:       3,
+				Success:       2,
+				SendOnResolve: true,
+			},
+		},
+	}
+	mockClient := &MockHTTPClient{StatusCode: http.StatusOK, Body: "OK"}
+	handler := NewHandler([]config.Service{sampleService}, mockClient)
 
 	handler.CheckService(sampleService)
 
