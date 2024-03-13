@@ -215,3 +215,27 @@ func TestCheckServiceBadAlertServiceName(t *testing.T) {
 
 	assert.Equal(t, "\nUnsupported sender type: not_found", err.Error())
 }
+
+func TestBadRequestMethod(t *testing.T) {
+	serviceName := "SampleService_2"
+
+	sampleService := config.Service{
+		Name:   serviceName,
+		URL:    "fail1!",
+		Method: "BadMethodα",
+		Alerts: []config.Alert{
+			{
+				Name:          "SampleAlert",
+				Webhook:       "https://hooks.slack.com/services/123456/7890",
+				Type:          "slack",
+				Failure:       3,
+				Success:       2,
+				SendOnResolve: true,
+			},
+		},
+	}
+
+	client := &http.Client{}
+	handler := NewHandler([]config.Service{sampleService}, client)
+	handler.CheckService(sampleService)
+}
