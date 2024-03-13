@@ -48,7 +48,9 @@ func TestHandler_Check(t *testing.T) {
 			},
 		},
 	}
-	handler := NewHandler([]config.Service{sampleService})
+
+	client := &http.Client{}
+	handler := NewHandler([]config.Service{sampleService}, client)
 
 	// Create a mock server to simulate successful responses
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -98,24 +100,24 @@ func TestCheckService(t *testing.T) {
 		},
 	}
 
-	handler := NewHandler([]config.Service{sampleService})
+	mockClient := &MockHTTPClient{StatusCode: http.StatusBadRequest, Body: "Bad Request"}
+	handler := NewHandler([]config.Service{sampleService}, mockClient)
 
 	for i := 0; i < 3; i++ {
-		mockClient := &MockHTTPClient{StatusCode: http.StatusBadRequest, Body: "Bad Request"}
-		handler.CheckService(mockClient, sampleService)
+		handler.CheckService(sampleService)
 	}
 
 	assert.Equal(t, 3, FailureThreshold[serviceName+"_SampleAlert"])
 	assert.Equal(t, 0, SuccessThreshold[serviceName+"_SampleAlert"])
 
-	mockClient := &MockHTTPClient{StatusCode: http.StatusOK, Body: "OK"}
-	handler.CheckService(mockClient, sampleService)
+	mockClient = &MockHTTPClient{StatusCode: http.StatusOK, Body: "OK"}
+	handler = NewHandler([]config.Service{sampleService}, mockClient)
+	handler.CheckService(sampleService)
 
 	assert.Equal(t, 3, FailureThreshold[serviceName+"_SampleAlert"])
 	assert.Equal(t, 1, SuccessThreshold[serviceName+"_SampleAlert"])
 
-	mockClient = &MockHTTPClient{StatusCode: http.StatusOK, Body: "OK"}
-	handler.CheckService(mockClient, sampleService)
+	handler.CheckService(sampleService)
 
 	assert.Equal(t, 0, FailureThreshold[serviceName+"_SampleAlert"])
 	assert.Equal(t, 0, SuccessThreshold[serviceName+"_SampleAlert"])
@@ -141,11 +143,10 @@ func TestCheckServiceBadBody(t *testing.T) {
 			},
 		},
 	}
-
-	handler := NewHandler([]config.Service{sampleService})
-
 	mockClient := &MockHTTPClient{StatusCode: http.StatusOK, Body: "Not OK"}
-	handler.CheckService(mockClient, sampleService)
+	handler := NewHandler([]config.Service{sampleService}, mockClient)
+
+	handler.CheckService(sampleService)
 
 	assert.Equal(t, 1, FailureThreshold[serviceName+"_SampleAlert"])
 	assert.Equal(t, 0, SuccessThreshold[serviceName+"_SampleAlert"])
@@ -172,12 +173,12 @@ func TestCheckServiceBadBodyMaxLimit(t *testing.T) {
 		},
 	}
 
-	handler := NewHandler([]config.Service{sampleService})
-
 	mockClient := &MockHTTPClient{StatusCode: http.StatusOK, Body: "OK"}
+	handler := NewHandler([]config.Service{sampleService}, mockClient)
+
 	FailureThreshold[serviceName+"_SampleAlert"] = LIMIT_MAX_FAILURE
 	SuccessThreshold[serviceName+"_SampleAlert"] = LIMIT_MAX_SUCCESS
-	handler.CheckService(mockClient, sampleService)
+	handler.CheckService(sampleService)
 
 	assert.Equal(t, 0, FailureThreshold[serviceName+"_SampleAlert"])
 	assert.Equal(t, 0, SuccessThreshold[serviceName+"_SampleAlert"])
@@ -204,12 +205,12 @@ func TestCheckServiceBadAlertServiceName(t *testing.T) {
 		},
 	}
 
-	handler := NewHandler([]config.Service{sampleService})
+	mockClient := &MockHTTPClient{StatusCode: http.StatusBadRequest, Body: "Bad Request"}
+	handler := NewHandler([]config.Service{sampleService}, mockClient)
 
 	err := errors.New("")
 	for i := 0; i < 3; i++ {
-		mockClient := &MockHTTPClient{StatusCode: http.StatusBadRequest, Body: "Bad Request"}
-		err = handler.CheckService(mockClient, sampleService)
+		err = handler.CheckService(sampleService)
 	}
 
 	assert.Equal(t, "\nUnsupported sender type: not_found", err.Error())

@@ -2,6 +2,12 @@ package server
 
 import (
 	"context"
+	"log"
+	"micro-pinger/v2/app/handler"
+	config "micro-pinger/v2/app/service"
+	"net/http"
+	"time"
+
 	"github.com/didip/tollbooth/v7"
 	"github.com/didip/tollbooth_chi"
 	"github.com/go-chi/chi/v5"
@@ -9,11 +15,6 @@ import (
 	"github.com/go-chi/render"
 	"github.com/jtrw/go-rest"
 	"github.com/pkg/errors"
-	"log"
-	"micro-pinger/v2/app/handler"
-	config "micro-pinger/v2/app/service"
-	"net/http"
-	"time"
 )
 
 type Server struct {
@@ -65,7 +66,9 @@ func (s Server) routes() chi.Router {
 	router.Use(tollbooth_chi.LimitHandler(tollbooth.NewLimiter(10, nil)))
 	router.Use(middleware.Logger)
 
-	handler := handler.NewHandler(s.Config.Service)
+	client := &http.Client{}
+
+	handler := handler.NewHandler(s.Config.Service, client)
 
 	router.Route(
 		"/api/v1", func(r chi.Router) {

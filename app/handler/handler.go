@@ -29,26 +29,27 @@ const (
 
 type Handler struct {
 	Services []config.Service
+	Client   HTTPClient
 }
 
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-func NewHandler(services []config.Service) Handler {
-	return Handler{Services: services}
+func NewHandler(services []config.Service, client HTTPClient) Handler {
+	return Handler{Services: services, Client: client}
 }
 
 func (h Handler) Check(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	client := &http.Client{}
+
 	for _, service := range h.Services {
-		go h.CheckService(client, service)
+		go h.CheckService(service)
 	}
 	json.NewEncoder(w).Encode(JSON{"status": "ok"})
 }
 
-func (h Handler) CheckService(client HTTPClient, service config.Service) error {
+func (h Handler) CheckService(service config.Service) error {
 	log.Printf("[%s] Checking service...", service.Name)
 
 	req, err := http.NewRequest(service.Method, service.URL, strings.NewReader(service.Body))
@@ -69,7 +70,7 @@ func (h Handler) CheckService(client HTTPClient, service config.Service) error {
 		}
 	}
 
-	resp, err := client.Do(req)
+	resp, err := h.Client.Do(req)
 	if err != nil {
 		log.Printf("[%s] Error making HTTP request", service.Name)
 		errMsg := sender.Response{
