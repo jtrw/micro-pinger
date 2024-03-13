@@ -51,9 +51,8 @@ func (h Handler) Check(w http.ResponseWriter, r *http.Request) {
 
 func (h Handler) CheckService(service config.Service) error {
 	log.Printf("[%s] Checking service...", service.Name)
-
 	req, err := http.NewRequest(service.Method, service.URL, strings.NewReader(service.Body))
-	defer req.Body.Close()
+
 	if err != nil {
 		log.Printf("[%s] Error creating HTTP request: %s", service.Name, err)
 		errMsg := sender.Response{
@@ -63,7 +62,7 @@ func (h Handler) CheckService(service config.Service) error {
 		}
 		return sendAlerts(service, errMsg)
 	}
-
+	defer req.Body.Close()
 	if service.Headers != nil {
 		for _, header := range service.Headers {
 			req.Header.Add(header.Name, header.Value)
