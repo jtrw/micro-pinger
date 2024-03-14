@@ -135,7 +135,7 @@ func TestCheckService(t *testing.T) {
 	assert.Equal(t, 0, SuccessThreshold[serviceName+"_SampleAlert"])
 }
 
-func TestCheckServiceCompareContain(t *testing.T) {
+func TestCheckServiceNotCompareContain(t *testing.T) {
 	serviceName := "SampleService_2"
 	sampleService := config.Service{
 		Name: serviceName,
@@ -143,7 +143,7 @@ func TestCheckServiceCompareContain(t *testing.T) {
 		Response: config.Response{
 			Status:  http.StatusOK,
 			Compare: "contains",
-			Body:    "OK",
+			Body:    "KO",
 		},
 		Alerts: []config.Alert{
 			{
@@ -161,8 +161,10 @@ func TestCheckServiceCompareContain(t *testing.T) {
 
 	handler.CheckService(sampleService)
 
-	assert.Equal(t, 0, FailureThreshold[serviceName+"_SampleAlert"])
+	assert.Equal(t, 1, FailureThreshold[serviceName+"_SampleAlert"])
 	assert.Equal(t, 0, SuccessThreshold[serviceName+"_SampleAlert"])
+
+	FailureThreshold[serviceName+"_SampleAlert"] = 0
 }
 
 func TestCheckServiceBadBody(t *testing.T) {
