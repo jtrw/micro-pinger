@@ -50,11 +50,9 @@ func (h Handler) Check(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h Handler) CheckService(service config.Service) error {
-	log.Printf("[%s] Checking service...", service.Name)
 	req, err := http.NewRequest(service.Method, service.URL, strings.NewReader(service.Body))
 
 	if err != nil {
-		log.Printf("[%s] Error creating HTTP request: %s", service.Name, err)
 		errMsg := sender.Response{
 			Text: "Error creating HTTP request",
 			Code: 500,
@@ -71,7 +69,6 @@ func (h Handler) CheckService(service config.Service) error {
 
 	resp, err := h.Client.Do(req)
 	if err != nil {
-		log.Printf("[%s] Error making HTTP request", service.Name)
 		errMsg := sender.Response{
 			Text: "Error making HTTP request",
 			Code: 500,
@@ -82,7 +79,6 @@ func (h Handler) CheckService(service config.Service) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != service.Response.Status {
-		log.Printf("[%s] Unexpected response status: %d", service.Name, resp.StatusCode)
 		errMsg := sender.Response{
 			Text: "Unexpected response status",
 			Code: resp.StatusCode,
@@ -93,7 +89,6 @@ func (h Handler) CheckService(service config.Service) error {
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("[%s] Error reading response body: %s", service.Name, err)
 		errMsg := sender.Response{
 			Text: "Error reading response body",
 			Code: resp.StatusCode,
@@ -106,7 +101,6 @@ func (h Handler) CheckService(service config.Service) error {
 		switch {
 		case service.Response.Compare == "contains":
 			if !strings.Contains(string(body), service.Response.Body) {
-				log.Printf("[%s] Unexpected response body: %s", service.Name, string(body))
 				errMsg := sender.Response{
 					Text: "Body does not contain expected string '" + service.Response.Body + "'",
 					Code: resp.StatusCode,
@@ -116,7 +110,6 @@ func (h Handler) CheckService(service config.Service) error {
 			}
 		default:
 			if string(body) != service.Response.Body {
-				log.Printf("[%s] Unexpected response body: %s", service.Name, string(body))
 				errMsg := sender.Response{
 					Text: "Unexpected response body",
 					Code: resp.StatusCode,
@@ -127,7 +120,6 @@ func (h Handler) CheckService(service config.Service) error {
 		}
 	}
 
-	log.Printf("[%s] Service is reachable and responding as expected", service.Name)
 	return sendAlerts(service, sender.Response{Code: 200})
 }
 
