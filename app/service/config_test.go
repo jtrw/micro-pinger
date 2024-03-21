@@ -9,12 +9,10 @@ import (
 )
 
 func TestLoadConfig(t *testing.T) {
-	// Create a temporary YAML file for testing
 	tempFile, err := ioutil.TempFile("", "test-config-*.yaml")
 	assert.NoError(t, err)
 	defer os.Remove(tempFile.Name())
 
-	// Write sample YAML content to the temporary file
 	yamlContent := []byte(`
 services:
   - name: example
@@ -41,41 +39,30 @@ services:
 	_, err = tempFile.Write(yamlContent)
 	assert.NoError(t, err)
 
-	// Load configuration from the temporary file
 	configFile := tempFile.Name()
 	config, err := LoadConfig(configFile)
 
-	// Assertions based on your expectations
 	assert.NoError(t, err, "Expected no error loading config")
 	assert.Len(t, config.Service, 1, "Expected one service in the config")
-
-	// Add more assertions based on your specific YAML content and expectations
-	// For example, check values of config.Service[0].Name, config.Service[0].URL, etc.
 }
 
 func TestConfigNotFound(t *testing.T) {
-	// Load a non-existing configuration file
 	_, err := LoadConfig("non-existing-file.yaml")
 
-	// Assertions based on your expectations
 	assert.Error(t, err, "Expected an error loading non-existing config file")
 }
 
 func TestBadConfig(t *testing.T) {
-	// Create a temporary YAML file for testing
 	tempFile, err := ioutil.TempFile("", "test-config-*.yaml")
 	assert.NoError(t, err)
 	defer os.Remove(tempFile.Name())
 
-	// Write a bad YAML content to the temporary file
 	yamlContent := []byte(`bad-yaml-content`)
 	_, err = tempFile.Write(yamlContent)
 	assert.NoError(t, err)
 
-	// Load configuration from the temporary file
 	configFile := tempFile.Name()
 	_, err = LoadConfig(configFile)
 
-	// Assertions based on your expectations
 	assert.Error(t, err, "Expected an error loading bad config file")
 }
