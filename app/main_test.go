@@ -3,8 +3,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"math/rand"
 	"net/http"
@@ -13,6 +11,9 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_main(t *testing.T) {
@@ -32,7 +33,6 @@ func Test_main(t *testing.T) {
 		close(finished)
 	}()
 
-	// defer cleanup because require check below can fail
 	defer func() {
 		close(done)
 		<-finished
@@ -56,7 +56,6 @@ func Test_main(t *testing.T) {
 }
 
 func waitForHTTPServerStart(port int) {
-	// wait for up to 10 seconds for server to start before returning it
 	client := http.Client{Timeout: time.Second}
 	for i := 0; i < 100; i++ {
 		time.Sleep(time.Millisecond * 100)

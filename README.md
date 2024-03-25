@@ -95,6 +95,11 @@ Now it's not implemented yet.
 
 Micro-Pinger sends alerts via configured channels (e.g., Slack, Telegram) in case of failures or anomalies in the monitored services.
 
+#### Supports Messages
+
+- Slack
+- Telegram
+
 ### Example
 
 Below is an example of using Micro-Pinger to monitor a service:
