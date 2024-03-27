@@ -60,7 +60,7 @@ func (s Server) Run(ctx context.Context) error {
 
 func (s Server) routes() chi.Router {
 	router := chi.NewRouter()
-	router.Use(rest.Authentication("Api-Key", s.Secret))
+	//router.Use(rest.Authentication("Api-Key", s.Secret))
 	router.Use(middleware.RequestID, middleware.RealIP)
 	router.Use(middleware.Throttle(1000), middleware.Timeout(60*time.Second))
 	router.Use(rest.AppInfo("Micro-Pinger", "Jrtw", s.Version), rest.Ping)
