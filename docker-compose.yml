@@ -1,0 +1,25 @@
+version: "3"
+services:
+  manage-rkeys:
+    container_name: micro-pinger
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5377:8080"
+    env_file:
+      - .env
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - LISTEN_SERVER=${LISTEN_SERVER}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "wget -qO- http://127.0.0.1:5377/ping | grep -q 'pong' || exit 1",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 3
