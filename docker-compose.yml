@@ -7,11 +7,12 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5377:8080"
-    env_file:
-      - .env
+    #env_file:
+    #- .env
     environment:
       - SECRET_KEY=${SECRET_KEY}
       - LISTEN_SERVER=${LISTEN_SERVER}
+      - CONFIG=${CONFIG_PINGER}
     healthcheck:
       test:
         [
