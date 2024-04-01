@@ -1,4 +1,4 @@
-FROM golang:1.18-alpine as backend
+FROM golang:1.21-alpine as backend
 
 ARG GIT_BRANCH
 ARG GITHUB_SHA
@@ -20,7 +20,7 @@ RUN \
     else version=${GIT_BRANCH}-${GITHUB_SHA:0:7}-$(date +%Y%m%dT%H:%M:%S); fi && \
     echo "version=$version"
 
-RUN cd app/backend && go build -o /pinger -ldflags "-X main.revision=${version} -s -w"
+RUN cd app && go build -o /pinger -ldflags "-X main.revision=${version} -s -w"
 
 FROM scratch
 
