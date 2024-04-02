@@ -1,7 +1,6 @@
 package handler
 
 import (
-	//"log"
 	"errors"
 	"io/ioutil"
 	config "micro-pinger/v2/app/service"
