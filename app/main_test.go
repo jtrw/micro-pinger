@@ -45,6 +45,7 @@ func Test_main(t *testing.T) {
 	{
 		url := fmt.Sprintf("http://localhost:%d/ping", port)
 		req, err := getRequest(url)
+		req.Header.Set("Api-Key", "123")
 		resp, err := client.Do(req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
