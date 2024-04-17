@@ -1,5 +1,8 @@
 # Micro-Pinger
 
+[![Build Status](https://github.com/jtrw/micro-pinger/workflows/Go/badge.svg)](https://github.com/jtrw/micro-pinger/actions)
+[![codecov](https://codecov.io/gh/jtrw/micro-pinger/graph/badge.svg?token=3WJJN4PW78)](https://codecov.io/gh/jtrw/micro-pinger)
+
 Micro-Pinger is a service written in Go (Golang) for monitoring various HTTP endpoints. It periodically sends requests to configured URLs and checks for expected responses. This documentation provides an overview of the main features and usage instructions.
 
 ## Features
