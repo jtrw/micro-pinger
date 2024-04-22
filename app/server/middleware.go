@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
 	"log"
 	config "micro-pinger/v2/app/service"
 	"net/http"
@@ -9,9 +10,24 @@ import (
 	"github.com/go-chi/render"
 )
 
+var (
+	hashConfig []byte
+)
+
 func ReloadConfigMiddleware(cfg config.Config) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			//get SHA256 of file config.yml
+			hasher := sha256.New()
+			hasher.Write([]byte("config.yml"))
+			hash := hasher.Sum(nil)
+			if string(hash) == string(hashConfig) {
+				log.Printf("[INFO] config not changed")
+				next.ServeHTTP(w, r)
+				return
+			}
+			hashConfig = hash
+			//reload config
 			config, err := config.LoadConfig("config.yml") // Load config from file
 
 			if err != nil {
