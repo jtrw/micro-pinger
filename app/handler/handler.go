@@ -42,12 +42,11 @@ func NewHandler(services []config.Service, client HTTPClient) Handler {
 
 func (h Handler) Check(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	//check if in context there is a key "config"
-	if r.Context().Value("config") == nil {
-		http.Error(w, "config not found", http.StatusInternalServerError)
-		return
+
+	if r.Context().Value("config") != nil {
+		h.Services = r.Context().Value("config").(config.Config).Service
 	}
-	log.Println(r.Context().Value("config").(config.Config))
+
 	for _, service := range h.Services {
 		go h.CheckService(service)
 	}

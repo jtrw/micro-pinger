@@ -21,11 +21,11 @@ func ReloadConfigMiddleware(cfg config.Config) func(next http.Handler) http.Hand
 			hasher := sha256.New()
 			hasher.Write([]byte("config.yml"))
 			hash := hasher.Sum(nil)
-			if string(hash) == string(hashConfig) {
-				log.Printf("[INFO] config not changed")
-				next.ServeHTTP(w, r)
-				return
-			}
+			// if string(hash) == string(hashConfig) {
+			// 	log.Printf("[INFO] config not changed")
+			// 	next.ServeHTTP(w, r)
+			// 	return
+			// }
 			hashConfig = hash
 			//reload config
 			config, err := config.LoadConfig("config.yml") // Load config from file
