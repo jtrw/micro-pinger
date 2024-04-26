@@ -73,7 +73,7 @@ func (s Server) routes() chi.Router {
 	router.Route(
 		"/api/v1", func(r chi.Router) {
 			r.Use(rest.Authentication("Api-Key", s.Secret))
-			r.Use(ReloadConfigMiddleware(s.Config))
+			//	r.Use(ReloadConfigMiddleware(s.Config))
 			r.Get("/check", handler.Check)
 		},
 	)
