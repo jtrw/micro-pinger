@@ -34,8 +34,6 @@ func ReloadConfigMiddleware(cfg config.Config) func(next http.Handler) http.Hand
 			log.Printf("[INFO] hashConfig: %s", hashConfig)
 			if hashStr == hashConfig {
 				log.Printf("[INFO] config not changed")
-				// next.ServeHTTP(w, r)
-				// return
 			}
 			hashConfig = hashStr
 			//reload config
